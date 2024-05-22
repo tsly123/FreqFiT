@@ -1,6 +1,6 @@
-# FreqFiT - Frequency Fine-Tuning: How Transformers Learned to Stop Worrying and Love Bandwidth
+# Frequency Fine-Tuning: How Transformers Learned to Stop Worrying and Love Bandwidth
 
-This repository contains the official PyTorch implementation for `FreqFiT - ECCV24 submission #10513`.
+This repository contains the official PyTorch implementation for `FreqFiT`.
 
 <img src="https://github.com/tsly123/FreqFiT/blob/main/assets/freqfit.png">
 
