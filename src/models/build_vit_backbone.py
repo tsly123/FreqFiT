@@ -14,7 +14,6 @@ from .vit_prompt.vit_clip import build_model as prompt_clip_vit_model
 
 from .vit_adapter.vit_mae import build_model as adapter_mae_vit_model
 from .vit_adapter.vit_moco import vit_base_freqfit as adapter_vit_base
-from .vit_adapter.vit_clip import build_model as adapter_clip_vit_model
 from .vit_adapter.vit import ADPT_VisionTransformer
 
 from .clip import clip
