@@ -3,27 +3,31 @@ import numpy as np
 import torch
 import os
 
-from .vit_backbones.vit_mae_freqfit import build_model as mae_vit_model_freqfit
-from .vit_backbones.vit_moco_freqfit import vit_base_freqfit
-from .vit_backbones.vit_clip_freqfit import build_model as clip_vit_model_freqfit
+from .vit_backbones.vit import VisionTransformer
+from .vit_backbones.vit_moco import vit_base
+from .vit_backbones.vit_mae import build_model as mae_vit_model
 
+from .vit_prompt.vit import PromptedVisionTransformer
 from .vit_prompt.vit_moco import vit_base as prompt_vit_base
 from .vit_prompt.vit_mae import build_model as prompt_mae_vit_model
 from .vit_prompt.vit_clip import build_model as prompt_clip_vit_model
 
 from .vit_adapter.vit_mae import build_model as adapter_mae_vit_model
-from .vit_adapter.vit_moco import vit_base_freqfit as adapter_vit_base_freqfit
+from .vit_adapter.vit_moco import vit_base_freqfit as adapter_vit_base
+from .vit_adapter.vit_clip import build_model as adapter_clip_vit_model
+from .vit_adapter.vit import ADPT_VisionTransformer
 
 from .clip import clip
 from .clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
+from .vit_lora.vit_lora import LoRA_ViT
+
 MODEL_ZOO = {
     "sup_vitb16_imagenet21k": "imagenet21k_ViT-B_16.npz",
     "mae_vitb16": "mae_pretrain_vit_base.pth",
-    "mocov3_vitb16" : "vit-b-300ep.pth.tar",    # pre-trained SSL weights
+    "mocov3_vitb16" : "vit-b-300ep.pth.tar",
     "clip_vitb16": "ViT-B-16.pt",
 }
-
 
 def build_mae_model(
     model_type, crop_size, prompt_cfg, model_root, adapter_cfg=None,
@@ -107,4 +111,39 @@ def build_clip_model(
     model.float()
     return model, model.viz_embed_dim
 
+def build_vit_sup_models(
+    model_type, crop_size, prompt_cfg=None, model_root=None, adapter_cfg=None,
+        load_pretrain=True, vis=False, lora_cfg=None, freqfit_config=None
+):
+    # image size is the size of actual image
+    m2featdim = {
+        "sup_vitb16_224": 768,
+        "sup_vitb16": 768,
+        "sup_vitl16_224": 1024,
+        "sup_vitl16": 1024,
+        "sup_vitb8_imagenet21k": 768,
+        "sup_vitb16_imagenet21k": 768,
+        "sup_vitb32_imagenet21k": 768,
+        "sup_vitl16_imagenet21k": 1024,
+        "sup_vitl32_imagenet21k": 1024,
+        "sup_vith14_imagenet21k": 1280,
+    }
+    if prompt_cfg is not None:
+        model = PromptedVisionTransformer(
+            prompt_cfg, model_type,
+            crop_size, num_classes=-1, vis=vis, freqfit_config=freqfit_config
+        )
+    elif adapter_cfg is not None:
+        model = ADPT_VisionTransformer(model_type, crop_size, num_classes=-1, adapter_cfg=adapter_cfg, freqfit_config=freqfit_config)
 
+    elif lora_cfg is not None:
+        model = LoRA_ViT(model_type=model_type, num_classes=-1, lora_cfg=lora_cfg, freqfit_config=freqfit_config)
+    else:
+        print("build ViT linear")
+        model = VisionTransformer(
+            model_type, crop_size, num_classes=-1, vis=vis, freqfit_config=freqfit_config)
+    
+    if load_pretrain:
+        model.load_from(np.load(os.path.join(model_root, MODEL_ZOO[model_type])))
+
+    return model, m2featdim[model_type]
