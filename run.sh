@@ -163,8 +163,8 @@ for seed in "42" "44" "82" "100" "800"; do
             MODEL.MODEL_ROOT "${model_root}" \
             DATA.DATAPATH "${data_path}" \
             OUTPUT_DIR "${output_dir}/seed${seed}" \
-            FREQFIT "${method}" \
-            MODEL.SAVE_CKPT "False" \
-            DATA.NO_TEST "True" \
-            SOLVER.SEARCH_EPOCH "3"
+            FREQFIT "${method}"
+            # MODEL.SAVE_CKPT "False" \
+            # DATA.NO_TEST "True" \
+            # SOLVER.SEARCH_EPOCH "3"
 done
