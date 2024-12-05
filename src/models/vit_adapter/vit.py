@@ -15,7 +15,7 @@ from ...utils import logging
 
 from ..gfn import GlobalFilter, GlobalFilter2D
 
-logger = logging.get_logger("visual_prompt")
+logger = logging.get_logger("FreqFit")
 
 
 class ADPT_Block(nn.Module):
