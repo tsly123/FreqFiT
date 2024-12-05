@@ -2,8 +2,8 @@
 
 ------
 <p align="center">
-<img src="assets/freqfit.png" width=40% height=40% hspace="20">
-<img src="assets/fig1.png" width=55% height=55%>
+<img src="assets/freqfit.png" width=40% height=40% hspace="10">
+<img src="assets/fig1.png" width=50% height=50%>
 <p align="center"> (Left) Overview of FreqFit. (Right) Performance gains with (left) Imagenet-21K and (right) MoCo.
 </p>
 
