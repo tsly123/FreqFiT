@@ -1,8 +1,12 @@
-# Frequency Fine-Tuning: How Transformers Learned to Stop Worrying and Love Bandwidth
+## Enhancing Parameter-Efficient Fine-Tuning of Vision Transformers through Frequency-Based Adaptation - <a href="https://arxiv.org/abs/2411.19297">ArXiV</a>
 
-This repository contains the official PyTorch implementation for `FreqFiT`.
+------
+<p align="center">
+<img src="assets/freqfit.png" width=45% height=45% hspace="20">
+<img src="assets/fig1.png" width=45% height=45%>
+<p align="center"> (Left) Overview of FreqFit. (Right) Performance gains with (left) Imagenet-21K and (right) MoCo.
+</p>
 
-<img src="https://github.com/tsly123/FreqFiT/blob/main/assets/freqfit.png">
 
 This repository is heavily based on the official PyTorch implementation of [Visual Prompt Tuning](https://github.com/KMnP/vpt) (ECCV22)
 
@@ -50,13 +54,56 @@ Once downloaded, modify the pre-trained backbones names `MODEL_ZOO` in `src/buil
 </tr>
 </tbody></table>
 
+### Key Configs
+Configs related to certain PEFT method are listed in `src/config/configs.py`. They can also be changed in the `run.sh`.
+
+This repo support `FreqFit` and `Scale-Shift` fine-tuning methods as presented in the paper. To change the supported method, go to `run.sh` and change to `FREQFIT "freqfit"` or `FREQFIT "ssf"`. 
+
+### FreqFit code
+- The code for `FreqFit` method is in `src/models/gfn.py`
+
+- The code for integrate `FreqFit` into PEFT method can be found in the vision transformer backbone of methods `vit.py`, such as `src/models/vit_backbones/vit.py`.
+
+### Adding new PEFT method
+- To add new PEFT methods that are available in <a href="https://huggingface.co/docs/peft/en/index">HuggingFace</a>. Simply go to `src/models/vit_models.py`
+
+```
+...
+# add VERA 
+elif transfer_type == "vera":
+    from peft import VeraConfig, get_peft_model
+    """
+    https://huggingface.co/docs/peft/en/package_reference/vera
+    """
+    config = VeraConfig(
+        r=cfg.MODEL.VERA.R,
+        target_modules=["attn.query", "attn.value", "attn.key", "attn.out", "ffn.fc1", "ffn.fc2"],
+        vera_dropout =0.1,
+        bias="vera_only",
+        modules_to_save=["classifier"],
+    )
+
+    self.enc = get_peft_model(self.enc, config)
+    for k, p in self.enc.named_parameters():
+        if "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+            p.requires_grad = True
+...
+```
+In the `run.sh`, modify `MODEL.TRANSFER_TYPE "vera"`. Refer to <a href="https://huggingface.co/docs/peft/en/index">HuggingFace</a> for config details.
+
+- To add custom PEFT method, build your custom method, then add it to add the custom method to `src/models/build_vit_backbone.py` and `src/models/vit_models.py`. Refer to `LoRA` at `src/models/vit_lora/vit_lora.py` and as an example.   
+
 ### Run experiments
 Modify the `run.sh` as your reference. Then run:
 
 ```
-bash run.sh [data_name] [encoder] [batch_size] [base_lr] [wd_lr] [num_tokens] [adapter_ratio]
+bash run.sh [data_name] [encoder] [batch_size] [base_lr] [wd_lr] [num_tokens] [adapter_ratio] [freqfit/ssf]
 ```
-Note that, `num_tokens` and `adapter_ratio` are for VPT and Adapter, respectively. For example, for the `DTD` dataset on `CLIP` with `Linear` tuning, execute:
+For example for the `Cifar100` dataset on `Imagenet-21k` with `LoRA` incorporate with `FreqFit`, execute:
 ```
-bash run.sh dtd clip_vitb16 128 0.1 0.01
+bash run.sh cifar100 sup_vitb16_imagenet21k 64 0.1 0.01 0 0 freqfit
 ```
+
+## License
+
+The majority of FreqFiT is licensed under the CC-BY-NC 4.0 license (see [LICENSE](https://github.com/KMnP/vpt/blob/main/LICENSE) for details). Portions of the project are available under separate license terms: GitHub - [google-research/task_adaptation](https://github.com/google-research/task_adaptation) and [huggingface/transformers](https://github.com/huggingface/transformers) are licensed under the Apache 2.0 license; [Swin-Transformer](https://github.com/microsoft/Swin-Transformer), [ConvNeXt](https://github.com/facebookresearch/ConvNeXt) and [ViT-pytorch](https://github.com/jeonsworld/ViT-pytorch) are licensed under the MIT license; and [MoCo-v3](https://github.com/facebookresearch/moco-v3) and [MAE](https://github.com/facebookresearch/mae) are licensed under the Attribution-NonCommercial 4.0 International license.
