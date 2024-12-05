@@ -99,7 +99,14 @@ Modify the `run.sh` as your reference. Then run:
 ```
 bash run.sh [data_name] [encoder] [batch_size] [base_lr] [wd_lr] [num_tokens] [adapter_ratio] [freqfit/ssf]
 ```
-For example for the `Cifar100` dataset on `Imagenet-21k` with `LoRA` incorporate with `FreqFit`, execute:
+For example for the `Cifar100` dataset on `Imagenet-21k` with `LoRA` incorporate with `FreqFit`, make sure the `MODEL.TRANSFER_TYPE` and other LoRA configs have been set in `run.sh`
+```
+--config-file configs/finetune/cub.yaml \
+MODEL.TRANSFER_TYPE "lora" \
+MODEL.LORA.RANK "8" \
+MODEL.LORA.ALPHA "8" \
+```
+Then, execute:
 ```
 bash run.sh cifar100 sup_vitb16_imagenet21k 64 0.1 0.01 0 0 freqfit
 ```
