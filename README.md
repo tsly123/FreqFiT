@@ -1,4 +1,4 @@
-## Enhancing Parameter-Efficient Fine-Tuning of Vision Transformers through Frequency-Based Adaptation - <a href="https://arxiv.org/abs/2411.19297">ArXiV</a>
+## Enhancing Parameter-Efficient Fine-Tuning of Vision Transformers through Frequency-Based Adaptation
 
 ------
 <p align="center">
