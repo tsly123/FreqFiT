@@ -61,6 +61,10 @@ class Trainer():
         self.evaluator = evaluator
         self.cpu_device = torch.device("cpu")
 
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name, param.shape)
+
     def forward_one_batch(self, inputs, targets, is_train):
         """Train a single (full) epoch on the model using the given
         data loader.
@@ -150,11 +154,15 @@ class Trainer():
 
         self.cls_weights = train_loader.dataset.get_class_weights(
             self.cfg.DATA.CLASS_WEIGHTS_TYPE)
-        # logger.info(f"class weights: {self.cls_weights}")
+
         patience = 0  # if > self.cfg.SOLVER.PATIENCE, stop training
 
         for epoch in range(total_epoch):
-            
+
+            if self.cfg.SOLVER.SEARCH_EPOCH is not None:
+                if epoch == self.cfg.SOLVER.SEARCH_EPOCH:
+                    break
+                
             # reset averagemeters to measure per-epoch results
             losses.reset()
             batch_time.reset()
@@ -178,20 +186,10 @@ class Trainer():
                     break
                 
                 X, targets = self.get_input(input_data)
-                # logger.info(X.shape)
-                # logger.info(targets.shape)
+
                 # measure data loading time
                 data_time.update(time.time() - end)
 
-                # if "clip" in self.cfg.DATA.FEATURE:
-                #     # X = X.type(torch.cuda.HalfTensor)
-                #     # targets = targets.type(torch.cuda.half)
-                #
-                #     with torch.cuda.amp.autocast():
-                #         train_loss, _ = self.forward_one_batch(X, targets, True)
-                #
-                # else:
-                #     train_loss, _ = self.forward_one_batch(X, targets, True)
                 train_loss, _ = self.forward_one_batch(X, targets, True)
 
                 if train_loss == -1:
@@ -238,10 +236,12 @@ class Trainer():
             # eval at each epoch for single gpu training
             self.evaluator.update_iteration(epoch)
             self.eval_classifier(val_loader, "val", epoch == total_epoch - 1)
+            # if test_loader is not None:
+            # saving inference time on (large) test set
             if test_loader is not None:
                 self.eval_classifier(
                     test_loader, "test", epoch == total_epoch - 1)
-
+        
             # check the patience
             t_name = "val_" + val_loader.dataset.name
             try:
