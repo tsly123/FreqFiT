@@ -11,10 +11,11 @@ from collections import OrderedDict
 from torchvision import models
 
 from .build_vit_backbone import (
-    build_mocov3_model, build_mae_model, build_clip_model
+    build_vit_sup_models, build_mocov3_model, build_mae_model, build_clip_model
 )
 from .mlp import MLP
 from ..utils import logging
+
 logger = logging.get_logger("FreqFiT")
 
 
@@ -35,14 +36,19 @@ class ViT(nn.Module):
         else:
             # prompt, end2end, cls+prompt
             self.froze_enc = False
-
+        
         if cfg.MODEL.TRANSFER_TYPE == "adapter":
             adapter_cfg = cfg.MODEL.ADAPTER
         else:
             adapter_cfg = None
 
+        if cfg.MODEL.TRANSFER_TYPE == "lora":
+            lora_cfg = cfg.MODEL.LORA
+        else:
+            lora_cfg = None
+
         self.build_backbone(
-            prompt_cfg, cfg, adapter_cfg, load_pretrain, vis=vis)
+            prompt_cfg, cfg, adapter_cfg, load_pretrain, vis=vis, lora_cfg=lora_cfg, freqfit_config=cfg.FREQFIT)
         self.cfg = cfg
         self.setup_side()
         self.setup_head(cfg)
@@ -59,8 +65,123 @@ class ViT(nn.Module):
             ]))
             self.side_projection = nn.Linear(9216, self.feat_dim, bias=False)
 
-    def build_backbone(self, prompt_cfg, cfg, adapter_cfg, load_pretrain, vis):
-        return None
+    def build_backbone(self, prompt_cfg, cfg, adapter_cfg, load_pretrain, vis, lora_cfg, freqfit_config):
+        transfer_type = cfg.MODEL.TRANSFER_TYPE
+        self.enc, self.feat_dim = build_vit_sup_models(
+            cfg.DATA.FEATURE, cfg.DATA.CROPSIZE, prompt_cfg, cfg.MODEL.MODEL_ROOT,
+                adapter_cfg, load_pretrain, vis, lora_cfg, freqfit_config
+        )
+
+        if transfer_type == "linear" or transfer_type == "side":
+            for k, p in self.enc.named_parameters():
+                p.requires_grad = False
+                if "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+
+        elif transfer_type == "tinytl-bias":
+            for k, p in self.enc.named_parameters():
+                if 'bias' in k or "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+
+        elif transfer_type == "prompt":
+            for k, p in self.enc.named_parameters():
+                if "prompt" in k or "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if "encoder" in k:
+                    p.requires_grad = False
+        
+        # adapter
+        elif transfer_type == "adapter":
+            for k, p in self.enc.named_parameters():
+                if "adapter" in k or "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+
+        elif transfer_type == "lora":
+            for k, p in self.enc.named_parameters():
+                if "lora" in k or "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+
+        elif transfer_type == "boft":
+            from peft import BOFTConfig, get_peft_model
+            """
+            https://huggingface.co/docs/peft/main/en/conceptual_guides/oft
+            """
+            print(self.enc)
+            config = BOFTConfig(
+                boft_block_size=cfg.MODEL.BOFT.BLOCK_SIZE,
+                boft_n_butterfly_factor=cfg.MODEL.BOFT.N_FACTOR,
+                target_modules=["attn.query", "attn.value", "attn.key", "attn.out", "ffn.fc1", "ffn.fc2"],
+                boft_dropout=0.1,
+                bias="boft_only",
+                modules_to_save=["classifier"],
+            )
+
+            self.enc = get_peft_model(self.enc, config)
+
+            print(self.enc)
+            for k, p in self.enc.named_parameters():
+                if "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+
+        elif transfer_type == "vera":
+            from peft import VeraConfig, get_peft_model
+            """
+            https://huggingface.co/docs/peft/en/package_reference/vera
+            """
+
+            print(self.enc)
+            config = VeraConfig(
+                r=cfg.MODEL.VERA.R,
+                target_modules=["attn.query", "attn.value", "attn.key", "attn.out", "ffn.fc1", "ffn.fc2"],
+                vera_dropout =0.1,
+                bias="vera_only",
+                modules_to_save=["classifier"],
+            )
+
+            self.enc = get_peft_model(self.enc, config)
+
+            print(self.enc)
+            for k, p in self.enc.named_parameters():
+                if "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+
+        elif transfer_type == "fft":
+            from peft import FourierFTConfig, get_peft_model
+            """
+            https://huggingface.co/docs/peft/en/package_reference/fourierft
+            """
+
+            print(self.enc)
+            config = FourierFTConfig(
+                n_frequency = cfg.MODEL.FFT.FREQ,
+                scaling= cfg.MODEL.FFT.SCALE,
+                target_modules=["attn.query", "attn.value", "attn.key", "attn.out", "ffn.fc1", "ffn.fc2"],
+                bias="fourier_only",
+                modules_to_save=["classifier"],
+            )
+
+            self.enc = get_peft_model(self.enc, config)
+
+            print(self.enc)
+            for k, p in self.enc.named_parameters():
+                if "ssf_scale" in k or "ssf_shift" in k or "filter_layer" in k:
+                    p.requires_grad = True
+
+        elif transfer_type == "end2end":
+            logger.info("Enable all parameters update during training")
+
+        else:
+            raise ValueError("transfer type {} is not supported".format(
+                transfer_type))
+
 
     def setup_head(self, cfg):
         self.head = MLP(
@@ -69,9 +190,6 @@ class ViT(nn.Module):
                 [cfg.DATA.NUMBER_CLASSES], # noqa
             special_bias=True
         )
-
-        # if "clip" in self.cfg.DATA.FEATURE:
-        #     convert_weights(self.head)
 
     def forward(self, x, return_feature=False):
         if self.side is not None:
@@ -92,7 +210,7 @@ class ViT(nn.Module):
         x = self.head(x)
 
         return x
-
+    
     def forward_cls_layerwise(self, x):
         cls_embeds = self.enc.forward_cls_layerwise(x)
         return cls_embeds
@@ -125,6 +243,7 @@ def convert_weights(model: nn.Module):
 
     model.apply(_convert_weights_to_fp16)
 
+
 class SSLViT(ViT):
     """moco-v3 and mae model."""
 
@@ -149,18 +268,22 @@ class SSLViT(ViT):
         if transfer_type == "partial-1":
             total_layer = len(self.enc.blocks)
             for k, p in self.enc.named_parameters():
-                if "blocks.{}".format(total_layer - 1) not in k and "fc_norm" not in k and k != "norm": # noqa
+                if "blocks.{}".format(total_layer - 1) not in k and "fc_norm" not in k and k != "norm":  # noqa
                     p.requires_grad = False
         elif transfer_type == "partial-2":
             total_layer = len(self.enc.blocks)
             for k, p in self.enc.named_parameters():
-                if "blocks.{}".format(total_layer - 1) not in k and "blocks.{}".format(total_layer - 2) not in k and "fc_norm" not in k and k != "norm": # noqa
+                if "blocks.{}".format(total_layer - 1) not in k and "blocks.{}".format(
+                        total_layer - 2) not in k and "fc_norm" not in k and k != "norm":  # noqa
                     p.requires_grad = False
 
         elif transfer_type == "partial-4":
             total_layer = len(self.enc.blocks)
             for k, p in self.enc.named_parameters():
-                if "blocks.{}".format(total_layer - 1) not in k and "blocks.{}".format(total_layer - 2) not in k and "blocks.{}".format(total_layer - 3) not in k and "blocks.{}".format(total_layer - 4) not in k and "fc_norm" not in k and k != "norm": # noqa
+                if "blocks.{}".format(total_layer - 1) not in k and "blocks.{}".format(
+                        total_layer - 2) not in k and "blocks.{}".format(
+                        total_layer - 3) not in k and "blocks.{}".format(
+                        total_layer - 4) not in k and "fc_norm" not in k and k != "norm":  # noqa
                     p.requires_grad = False
 
         elif transfer_type == "linear" or transfer_type == "side":
@@ -179,7 +302,7 @@ class SSLViT(ViT):
 
         elif transfer_type == "prompt" and prompt_cfg.LOCATION == "below":
             for k, p in self.enc.named_parameters():
-                if "prompt" not in k and "patch_embed.proj.weight" not in k  and "patch_embed.proj.bias" not in k:
+                if "prompt" not in k and "patch_embed.proj.weight" not in k and "patch_embed.proj.bias" not in k:
                     p.requires_grad = False
 
         elif transfer_type == "prompt":
@@ -189,7 +312,7 @@ class SSLViT(ViT):
 
         elif transfer_type == "end2end":
             logger.info("Enable all parameters update during training")
-        
+
         # adapter
         elif transfer_type == "adapter":
             for k, p in self.enc.named_parameters():
