@@ -36,7 +36,7 @@ _C.MODEL.SAVE_CKPT = True
 
 _C.MODEL.MODEL_ROOT = "pretrained"  # root folder for pretrained model weights
 
-_C.MODEL.TYPE = "ssl-vit"
+_C.MODEL.TYPE = "vit"
 _C.MODEL.MLP_NUM = 0
 
 _C.MODEL.LINEAR = CfgNode()
@@ -73,20 +73,39 @@ _C.MODEL.PROMPT.FORWARD_DEEP_NOEXPAND = False  # if true, will not expand input 
 _C.MODEL.PROMPT.VIT_POOL_TYPE = "original"
 _C.MODEL.PROMPT.DROPOUT = 0.0
 _C.MODEL.PROMPT.SAVE_FOR_EACH_EPOCH = False
-_C.MODEL.PROMPT.FILTER = True
-
 # ----------------------------------------------------------------------
 # adapter options
 # ----------------------------------------------------------------------
 _C.MODEL.ADAPTER = CfgNode()
 _C.MODEL.ADAPTER.REDUCATION_FACTOR = 8
 _C.MODEL.ADAPTER.STYLE = "Pfeiffer"
-_C.MODEL.ADAPTER.FILTER = True
 
 # ----------------------------------------------------------------------
-# FreqFiT options
+# lora options
 # ----------------------------------------------------------------------
-_C.MODEL.FILTER = True
+_C.MODEL.LORA = CfgNode()
+_C.MODEL.LORA.RANK = 8
+_C.MODEL.LORA.ALPHA = 8
+
+# ----------------------------------------------------------------------
+# boft options
+# ----------------------------------------------------------------------
+_C.MODEL.BOFT = CfgNode()
+_C.MODEL.BOFT.BLOCK_SIZE = 4
+_C.MODEL.BOFT.N_FACTOR = 2
+
+# ----------------------------------------------------------------------
+# vera options
+# ----------------------------------------------------------------------
+_C.MODEL.VERA = CfgNode()
+_C.MODEL.VERA.R = 256
+
+# ----------------------------------------------------------------------
+# FFT options
+# ----------------------------------------------------------------------
+_C.MODEL.FFT = CfgNode()
+_C.MODEL.FFT.FREQ = 3000
+_C.MODEL.FFT.SCALE = 300
 
 # ----------------------------------------------------------------------
 # Solver options
@@ -102,7 +121,6 @@ _C.SOLVER.WEIGHT_DECAY_BIAS = 0
 
 _C.SOLVER.PATIENCE = 300
 
-
 _C.SOLVER.SCHEDULER = "cosine"
 
 _C.SOLVER.BASE_LR = 0.01
@@ -114,6 +132,8 @@ _C.SOLVER.LOG_EVERY_N = 1000
 
 
 _C.SOLVER.DBG_TRAINABLE = False # if True, will print the name of trainable params
+
+_C.SOLVER.SEARCH_EPOCH = None
 # ----------------------------------------------------------------------
 # Dataset options
 # ----------------------------------------------------------------------
@@ -141,6 +161,7 @@ _C.DIST_BACKEND = "nccl"
 _C.DIST_INIT_PATH = "env://"
 _C.DIST_INIT_FILE = ""
 
+_C.FREQFIT = None   # freqfit, ssf, None
 
 def get_cfg():
     """
