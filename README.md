@@ -16,7 +16,7 @@ This repository is heavily based on the official PyTorch implementation of [Visu
 
 ## More results
 
-We experiment [FreqFit2D](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21) and its parameter-reduced ablation [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93) on VTab Natural with ViT-L.
+We experiment [FreqFit2D](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21) and its parameter-reduced ablation [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93) on VTab Natural with ViT-L. More results will be updated.
 
 
 <a id="vitl"></a>
