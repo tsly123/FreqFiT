@@ -1,6 +1,6 @@
 ## Enhancing Parameter-Efficient Fine-Tuning of Vision Transformers through Frequency-Based Adaptation
 
-------
+
 <p align="center">
 <img src="assets/freqfit.png" width=40% height=40% hspace="10">
 <img src="assets/fig1.png" width=50% height=50%>
@@ -9,6 +9,28 @@
 
 
 This repository is heavily based on the official PyTorch implementation of [Visual Prompt Tuning](https://github.com/KMnP/vpt) (ECCV22)
+
+## Updates
+
+- 01/2025: Add [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93), a parameter-reduced version of the original [FreqFit](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21). Here, we drop the filter's complex values, reducing half of the parameters, and use this filter to adjust both the real and complex parts of the input's spectrum. We use this filter to generate the results in Tab. [ViT-L results](#vitl)
+
+## More results
+
+We experiment [FreqFit2D](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21) and its parameter-reduced ablation [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93) on VTab Natural with ViT-L.
+
+
+<a id="vitl"></a>
+| ViT-L                                         |   VTab-Natural   |       Params        |
+|-----------------------------------------------|:----------------:|:-------------------:|
+| LoRA                                          |       80.6       |      3.5M + 0.0M    |
+| FreqFit-LoRA                                  |       82.0       |      3.5M + 5.7M    |
+| FreqFit*-LoRA                                 |       82.0       |      3.5M + 2.9M    |
+|-----------------------------------------------|----------------- |-------------------- |
+| RLRR                                          |       81.4       |      0.76M + 0.0M   |
+| FreqFit*-RLRR                                 |       81.9       |      0.76M + 2.9M   |
+
+Tab. Vit-L results. FreqFit and its parameter-reduced ablation generalize well with large-scale model. FreqFit* denote the results obtained with [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93). It is on par with the original [FreqFit](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21) with half of the parameters.
+
 
 ## Environment settings
 
