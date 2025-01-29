@@ -22,12 +22,12 @@ We experiment [FreqFit2D](https://github.com/tsly123/FreqFiT/blob/main/src/model
 <a id="vitl"></a>
 | ViT-L          | Cifar100 | Caltech101 | DTD  | Flower102 | Pets | SVHN | Sun397 | Mean  | Params               |
 |----------------|:--------:|:----------:|:----:|:---------:|:----:|:----:|:------:|:-----:|:--------------------:|
-| LoRA           |   77.2   |    90.6    | 68.6 |    98.8   | 89.1 | 83.4 |  56.2  |  80.6 |   3.5M + 0.0M        |
-| FreqFit-LoRA   |   86.5   |    90.4    | 68.5 |    98.7   | 89.4 | 83.7 |  56.2  |  81.9 |   3.5M + 5.7M        |
-| FreqFit*-LoRA  |  86.7   |    90.4    | 68.8 |    98.7   | 89.2 | 83.5 |  56.1  |  81.9 |   3.5M + 2.9M        |
-|----------------|--------|----------|----|---------|----|----|------|-----|--------------------|
-| RLRR           |   79.0   |    90.8    | 69.3 |    98.8   | 89.3 | 87.7 |  54.9  |  81.4 |   0.76M + 0.0M       |
-| FreqFit*-RLRR  |  82.6   |    91.3    | 68.6 |    99.0   | 90.1 | 87.2 |  54.5  |  81.9 |   0.76M + 2.9M       |
+| LoRA           |   77.2   |    90.6    | 68.6 |    98.8   | 89.1 | 83.4 |  56.2  |  80.6 |   3.5M+0.0M        |
+| FreqFit-LoRA   |   86.5   |    90.4    | 68.5 |    98.7   | 89.4 | 83.7 |  56.2  |  81.9 |   3.5M+5.7M        |
+| FreqFit*-LoRA  |  86.7   |    90.4    | 68.8 |    98.7   | 89.2 | 83.5 |  56.1  |  81.9 |   3.5M+2.9M        |
+|------|------|------|------|------|------|------|------|------|------|
+| RLRR           |   79.0   |    90.8    | 69.3 |    98.8   | 89.3 | 87.7 |  54.9  |  81.4 |   0.76M+0.0M       |
+| FreqFit*-RLRR  |  82.6   |    91.3    | 68.6 |    99.0   | 90.1 | 87.2 |  54.5  |  81.9 |   0.76M+2.9M       |
 
 Tab. Vit-L results. FreqFit and its parameter-reduced ablation generalize well with large-scale model. FreqFit* denote the results obtained with [Filter2DParams](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L93). It is on par with the original [FreqFit](https://github.com/tsly123/FreqFiT/blob/main/src/models/gfn.py#L60C7-L60C21) with half of the parameters.
 
@@ -73,6 +73,10 @@ Once downloaded, modify the pre-trained backbones names `MODEL_ZOO` in `src/buil
 <tr><td align="left">ViT-B/16</td>
 <td align="center">CLIP</td>
 <td align="center"><a href="https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt">link</a></td>
+</tr>
+<tr><td align="left">ViT-L/16</td>
+<td align="center">Supervised</td>
+<td align="center"><a href="https://storage.googleapis.com/vit_models/imagenet21k/ViT-L_16.npz">link</a></td>
 </tr>
 </tbody></table>
 
